@@ -69,6 +69,7 @@ jobs:
           PROJECT_ROOT="$(pwd)"
 
           mkdir -p /tmp/gradle-wrap
+          : > /tmp/gradle-wrap/settings.gradle
           (
             cd /tmp/gradle-wrap
             gradle wrapper --gradle-version 8.7 --distribution-type bin
