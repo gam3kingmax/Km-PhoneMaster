@@ -14,6 +14,7 @@ jobs:
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      GRADLE_USER_HOME: /home/runner/.gradle
 
     steps:
       - name: Checkout repository
@@ -24,6 +25,14 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+
+      - name: Cache Gradle packages and wrapper
+        uses: actions/cache@v4
+        with:
+          path: |
+            /home/runner/.gradle/caches
+            /home/runner/.gradle/wrapper
+          key: gradle-km-phonemaster-8.7-agp-8.5.2-kt-1.9.24
 
       - name: Set up Android SDK
         shell: bash
@@ -907,7 +916,22 @@ jobs:
           EOF
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          attempt=1
+          max_attempts=4
+          until ./gradlew assembleDebug --stacktrace; do
+            if [ "$attempt" -ge "$max_attempts" ]; then
+              echo "Gradle build failed after $max_attempts attempts."
+              exit 1
+            fi
+            sleep_sec=$((attempt * 15))
+            echo "Attempt $attempt hit a transient error (likely repository 429). Retrying in ${sleep_sec}s..."
+            attempt=$((attempt + 1))
+            sleep "$sleep_sec"
+          done
 
       - name: Upload KM PhoneMaster APK
         uses: actions/upload-artifact@v4
