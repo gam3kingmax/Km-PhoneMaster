@@ -33,13 +33,11 @@ jobs:
           SDK_DIR="${ANDROID_HOME}"
           mkdir -p "${SDK_DIR}/licenses"
 
-          # Accept standard Android SDK license hashes directly
           printf "8933bad161af4178b1185d1a37fbf41ea5269c55\n" > "${SDK_DIR}/licenses/android-sdk-license"
           printf "84831b9409646a918e30573bab4c9c91346d8abd\n" > "${SDK_DIR}/licenses/android-sdk-preview-license"
           printf "d975f751698a77b662f1254ddbeed3901e976f5a\n" > "${SDK_DIR}/licenses/intel-android-extra-license"
           printf "79120722343a6f314e0719f863036c702b0e6b2a\n" > "${SDK_DIR}/licenses/android-googletv-license"
 
-          # Locate sdkmanager (prefer latest/20.0 if present, otherwise download cmdline-tools)
           SDKMANAGER=""
           for candidate in \
             "${SDK_DIR}/cmdline-tools/latest/bin/sdkmanager" \
@@ -68,7 +66,19 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p .github/workflows
+          PROJECT_ROOT="$(pwd)"
+
+          mkdir -p /tmp/gradle-wrap
+          (
+            cd /tmp/gradle-wrap
+            gradle wrapper --gradle-version 8.7 --distribution-type bin
+          )
+          cp /tmp/gradle-wrap/gradlew "${PROJECT_ROOT}/gradlew"
+          mkdir -p "${PROJECT_ROOT}/gradle/wrapper"
+          cp /tmp/gradle-wrap/gradle/wrapper/gradle-wrapper.jar "${PROJECT_ROOT}/gradle/wrapper/"
+          cp /tmp/gradle-wrap/gradle/wrapper/gradle-wrapper.properties "${PROJECT_ROOT}/gradle/wrapper/"
+          chmod +x "${PROJECT_ROOT}/gradlew"
+
           mkdir -p app/src/main/java/com/km/phonemaster/service
           mkdir -p app/src/main/java/com/km/phonemaster/receiver
           mkdir -p app/src/main/java/com/km/phonemaster/monitor
@@ -894,9 +904,6 @@ jobs:
               }
           }
           EOF
-
-          gradle wrapper --gradle-version 8.7
-          chmod +x gradlew
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
