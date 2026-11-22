@@ -60,8 +60,8 @@ jobs:
             SDKMANAGER="${SDK_DIR}/cmdline-tools/latest/bin/sdkmanager"
           fi
 
-          yes | "$SDKMANAGER" --sdk_root="${SDK_DIR}" --licenses > /dev/null || true
-          yes | "$SDKMANAGER" --sdk_root="${SDK_DIR}" "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null
+          "$SDKMANAGER" --licenses < /dev/null > /dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-34" "build-tools;34.0.0" < /dev/null > /dev/null
 
       - name: Scaffold KM PhoneMaster Android project
         shell: bash
