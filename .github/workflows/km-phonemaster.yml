@@ -11,6 +11,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,13 +26,42 @@ jobs:
           java-version: "17"
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept all Android SDK licenses
         shell: bash
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses > /dev/null || true
+
+          SDK_DIR="${ANDROID_HOME}"
+          mkdir -p "${SDK_DIR}/licenses"
+
+          # Accept standard Android SDK license hashes directly
+          printf "8933bad161af4178b1185d1a37fbf41ea5269c55\n" > "${SDK_DIR}/licenses/android-sdk-license"
+          printf "84831b9409646a918e30573bab4c9c91346d8abd\n" > "${SDK_DIR}/licenses/android-sdk-preview-license"
+          printf "d975f751698a77b662f1254ddbeed3901e976f5a\n" > "${SDK_DIR}/licenses/intel-android-extra-license"
+          printf "79120722343a6f314e0719f863036c702b0e6b2a\n" > "${SDK_DIR}/licenses/android-googletv-license"
+
+          # Locate sdkmanager (prefer latest/20.0 if present, otherwise download cmdline-tools)
+          SDKMANAGER=""
+          for candidate in \
+            "${SDK_DIR}/cmdline-tools/latest/bin/sdkmanager" \
+            "${SDK_DIR}/cmdline-tools/20.0/bin/sdkmanager" \
+            "${SDK_DIR}/cmdline-tools/16.0/bin/sdkmanager"; do
+            if [ -x "$candidate" ]; then
+              SDKMANAGER="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$SDKMANAGER" ]; then
+            mkdir -p /tmp/cmdline-tools
+            curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip -o /tmp/cmdtools.zip
+            unzip -qo /tmp/cmdtools.zip -d /tmp/cmdline-tools
+            mkdir -p "${SDK_DIR}/cmdline-tools/latest"
+            mv /tmp/cmdline-tools/cmdline-tools/* "${SDK_DIR}/cmdline-tools/latest/"
+            SDKMANAGER="${SDK_DIR}/cmdline-tools/latest/bin/sdkmanager"
+          fi
+
+          yes | "$SDKMANAGER" --sdk_root="${SDK_DIR}" --licenses > /dev/null || true
+          yes | "$SDKMANAGER" --sdk_root="${SDK_DIR}" "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null
 
       - name: Scaffold KM PhoneMaster Android project
         shell: bash
