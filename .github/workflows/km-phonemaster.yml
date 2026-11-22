@@ -1,6 +1,5 @@
 name: Build KM PhoneMaster APK
 
-# Triggers immediately when you save/commit this file (any branch) AND adds the "Run workflow" button in the Actions tab
 on:
   push:
   workflow_dispatch:
@@ -24,6 +23,12 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+
+      - name: Accept all Android SDK licenses
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses > /dev/null || true
 
       - name: Scaffold KM PhoneMaster Android project
         shell: bash
